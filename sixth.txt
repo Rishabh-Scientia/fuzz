@@ -1,0 +1,59 @@
+# 1. IMPORT LIBRARIES
+import numpy as np
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
+import matplotlib.pyplot as plt
+
+# 2. DATABASE: Define variables
+water_level = ctrl.Antecedent(np.arange(0, 101, 1), 'water_level')
+pump_speed = ctrl.Consequent(np.arange(0, 101, 1), 'pump_speed')
+
+# 3. DATABASE: Membership functions
+water_level['low'] = fuzz.trimf(water_level.universe, [0, 0, 50])
+water_level['medium'] = fuzz.trimf(water_level.universe, [25, 50, 75])
+water_level['high'] = fuzz.trimf(water_level.universe, [50, 100, 100])
+
+pump_speed['low'] = fuzz.trimf(pump_speed.universe, [0, 0, 50])
+pump_speed['medium'] = fuzz.trimf(pump_speed.universe, [25, 50, 75])
+pump_speed['high'] = fuzz.trimf(pump_speed.universe, [50, 100, 100])
+
+# 4. RULE BASE: Define IF-THEN rules
+rule1 = ctrl.Rule(water_level['low'], pump_speed['high'])
+rule2 = ctrl.Rule(water_level['medium'], pump_speed['medium'])
+rule3 = ctrl.Rule(water_level['high'], pump_speed['low'])
+
+# 5. INFERENCE ENGINE
+tank_control = ctrl.ControlSystem([rule1, rule2, rule3])
+tank_simulation = ctrl.ControlSystemSimulation(tank_control)
+
+# 6. FUZZIFICATION: Give crisp input
+level = 30
+tank_simulation.input['water_level'] = level
+
+# Display membership values
+low_value = fuzz.interp_membership(water_level.universe, water_level['low'].mf, level)
+medium_value = fuzz.interp_membership(water_level.universe, water_level['medium'].mf, level)
+high_value = fuzz.interp_membership(water_level.universe, water_level['high'].mf, level)
+
+# 7. INFERENCE AND DEFUZZIFICATION
+tank_simulation.compute()
+output = tank_simulation.output['pump_speed']
+
+# 8. DISPLAY CRISP OUTPUT
+print("AUTOMATIC WATER TANK CONTROL")
+print("----------------------------------")
+print("Water Level:", level, "%")
+print("\nFuzzification Results:")
+print("Low:", round(low_value, 2))
+print("Medium:", round(medium_value, 2))
+print("High:", round(high_value, 2))
+print("\nDefuzzification Result:")
+print("Pump Speed:", round(output, 2), "%")
+
+# 9. GRAPHICAL REPRESENTATION
+water_level.view()
+plt.title("Water Level Membership Functions")
+
+pump_speed.view()
+plt.title("Pump Speed Membership Functions")
+plt.show()

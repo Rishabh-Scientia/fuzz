@@ -1,0 +1,69 @@
+# 1. IMPORT LIBRARIES
+import numpy as np
+import skfuzzy as fuzz
+import matplotlib.pyplot as plt
+
+# 2. DEFINE INPUT UNIVERSE
+x = np.arange(-2, 3, 1)
+
+# 3. DEFINE FUZZY INPUT SET
+# Triangular membership function
+A = fuzz.trimf(x, [-3, 0, 3])
+
+print("==================================")
+print("FUZZY INPUT SET")
+print("==================================")
+print("Input Universe:", x)
+print("Input Membership Values:", np.round(A, 2))
+
+# 4. DEFINE MAPPING FUNCTION
+# Mapping function: f(x) = x^2
+def mapping_function(x_val):
+    return x_val ** 2
+
+# 5. APPLY EXTENSION PRINCIPLE
+output = {}
+for i in range(len(x)):
+    y = mapping_function(x[i])
+    if y in output:
+        output[y] = max(output[y], A[i])
+    else:
+        output[y] = A[i]
+
+# 6. DISPLAY FUZZY OUTPUT SET
+print("\n==================================")
+print("FUZZY OUTPUT SET")
+print("==================================")
+output_values = np.array(sorted(output.keys()))
+output_membership = np.array([output[y] for y in output_values])
+
+print("Output Universe:", output_values)
+print("Output Membership Values:", np.round(output_membership, 2))
+
+# 7. DISPLAY MAPPING RESULTS
+print("\n==================================")
+print("MAPPING RESULTS")
+print("==================================")
+for y in output_values:
+    print("Output:", y, "Membership:", round(output[y], 2))
+
+# 8. PLOT INPUT AND OUTPUT FUZZY SETS
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+plt.plot(x, A, 'bo-', label="Input Fuzzy Set A")
+plt.xlabel("Input Values (x)")
+plt.ylabel("Membership Degree")
+plt.title("Fuzzy Input Set")
+plt.legend()
+plt.grid()
+
+plt.subplot(1, 2, 2)
+plt.plot(output_values, output_membership, 'ro-', label="Output Fuzzy Set B")
+plt.xlabel("Output Values (y)")
+plt.ylabel("Membership Degree")
+plt.title("Fuzzy Output Set")
+plt.legend()
+plt.grid()
+
+plt.tight_layout()
+plt.show()

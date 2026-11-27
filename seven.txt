@@ -1,0 +1,149 @@
+# 1. IMPORT LIBRARIES
+import numpy as np
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
+from itertools import product
+import matplotlib.pyplot as plt
+
+# 2. SYSTEM PARAMETERS
+dt = 0.1
+time = np.arange(0, 10, dt)
+setpoint = 50
+tau = 2.0
+
+# 3. FUZZY CONTROLLER DESIGN FUNCTION
+def create_fuzzy_controller(prefix):
+    error = ctrl.Antecedent(np.arange(-1, 1.01, 0.01), prefix + '_error')
+    change = ctrl.Antecedent(np.arange(-1, 1.01, 0.01), prefix + '_change')
+    output = ctrl.Consequent(np.arange(-1, 1.01, 0.01), prefix + '_output')
+
+    labels = ['negative', 'zero', 'positive']
+
+    # Membership functions
+    for variable in [error, change, output]:
+        variable['negative'] = fuzz.trimf(variable.universe, [-1, -1, 0])
+        variable['zero'] = fuzz.trimf(variable.universe, [-1, 0, 1])
+        variable['positive'] = fuzz.trimf(variable.universe, [0, 1, 1])
+
+    # Fuzzy rule base
+    values = {'negative': -1, 'zero': 0, 'positive': 1}
+    rules = []
+
+    for a, b in product(labels, repeat=2):
+        score = values[a] + values[b]
+        if score < 0:
+            result = 'negative'
+        elif score > 0:
+            result = 'positive'
+        else:
+            result = 'zero'
+        rules.append(ctrl.Rule(error[a] & change[b], output[result]))
+
+    system = ctrl.ControlSystem(rules)
+    return ctrl.ControlSystemSimulation(system)
+
+# 4. CREATE FUZZY CONTROLLERS
+fuzzy_pi = create_fuzzy_controller('pi')
+fuzzy_pd = create_fuzzy_controller('pd')
+hybrid_pi = create_fuzzy_controller('hybrid_pi')
+hybrid_pd = create_fuzzy_controller('hybrid_pd')
+
+# 5. INITIALIZE RESPONSE ARRAYS
+pid_response = np.zeros(len(time))
+pi_response = np.zeros(len(time))
+pd_response = np.zeros(len(time))
+hybrid_response = np.zeros(len(time))
+
+# 6. CONVENTIONAL PID PARAMETERS
+Kp = 2.0
+Ki = 0.8
+Kd = 0.1
+integral_pid = 0
+previous_pid_error = 0
+
+# 7. FUZZY CONTROLLER VARIABLES
+pi_control = 0
+hybrid_pi_control = 0
+previous_pi_error = 0
+previous_pd_error = 0
+previous_hybrid_error = 0
+
+# 8. SIMULATION LOOP
+for i in range(1, len(time)):
+    # --- CONVENTIONAL PID CONTROLLER ---
+    e = setpoint - pid_response[i - 1]
+    integral_pid += e * dt
+    derivative = (e - previous_pid_error) / dt
+    u = Kp * e + Ki * integral_pid + Kd * derivative
+    u = np.clip(u, 0, 100)
+    pid_response[i] = pid_response[i - 1] + dt * (u - pid_response[i - 1]) / tau
+    previous_pid_error = e
+
+    # --- FUZZY PI CONTROLLER ---
+    e = setpoint - pi_response[i - 1]
+    de = np.clip((e - previous_pi_error) / 50, -1, 1)
+    fuzzy_pi.input['pi_error'] = np.clip(e / 50, -1, 1)
+    fuzzy_pi.input['pi_change'] = de
+    fuzzy_pi.compute()
+    pi_control += 8 * fuzzy_pi.output['pi_output']
+    pi_control = np.clip(pi_control, 0, 100)
+    pi_response[i] = pi_response[i - 1] + dt * (pi_control - pi_response[i - 1]) / tau
+    previous_pi_error = e
+
+    # --- FUZZY PD CONTROLLER ---
+    e = setpoint - pd_response[i - 1]
+    de = np.clip((e - previous_pd_error) / 50, -1, 1)
+    fuzzy_pd.input['pd_error'] = np.clip(e / 50, -1, 1)
+    fuzzy_pd.input['pd_change'] = de
+    fuzzy_pd.compute()
+    u = setpoint + 30 * fuzzy_pd.output['pd_output']
+    u = np.clip(u, 0, 100)
+    pd_response[i] = pd_response[i - 1] + dt * (u - pd_response[i - 1]) / tau
+    previous_pd_error = e
+
+    # --- HYBRID FUZZY PI-PD CONTROLLER ---
+    e = setpoint - hybrid_response[i - 1]
+    de = np.clip((e - previous_hybrid_error) / 50, -1, 1)
+
+    # Fuzzy PI part
+    hybrid_pi.input['hybrid_pi_error'] = np.clip(e / 50, -1, 1)
+    hybrid_pi.input['hybrid_pi_change'] = de
+    hybrid_pi.compute()
+    hybrid_pi_control += 6 * hybrid_pi.output['hybrid_pi_output']
+    hybrid_pi_control = np.clip(hybrid_pi_control, 0, 100)
+
+    # Fuzzy PD part
+    hybrid_pd.input['hybrid_pd_error'] = np.clip(e / 50, -1, 1)
+    hybrid_pd.input['hybrid_pd_change'] = de
+    hybrid_pd.compute()
+    pd_part = setpoint + 30 * hybrid_pd.output['hybrid_pd_output']
+    pd_part = np.clip(pd_part, 0, 100)
+
+    # Combine PI and PD outputs
+    u = 0.5 * hybrid_pi_control + 0.5 * pd_part
+    hybrid_response[i] = hybrid_response[i - 1] + dt * (u - hybrid_response[i - 1]) / tau
+    previous_hybrid_error = e
+
+# 9. DISPLAY FINAL RESULTS
+print("CONTROLLER PERFORMANCE COMPARISON")
+print("----------------------------------")
+print("Desired Setpoint:", setpoint)
+print("Conventional PID:", round(pid_response[-1], 2))
+print("Fuzzy PI:", round(pi_response[-1], 2))
+print("Fuzzy PD:", round(pd_response[-1], 2))
+print("Hybrid Fuzzy PI-PD:", round(hybrid_response[-1], 2))
+
+# 10. PLOT COMPARISON GRAPH
+plt.figure(figsize=(10, 6))
+plt.plot(time, pid_response, label='Conventional PID')
+plt.plot(time, pi_response, label='Fuzzy PI')
+plt.plot(time, pd_response, label='Fuzzy PD')
+plt.plot(time, hybrid_response, label='Hybrid Fuzzy PI-PD')
+plt.axhline(setpoint, linestyle='--', color='k', label='Desired Setpoint')
+plt.xlabel('Time (seconds)')
+plt.ylabel('System Output')
+plt.title('Comparison of Fuzzy and Conventional PID Controllers')
+plt.legend()
+plt.grid()
+plt.show()
+```[cite: 1, 2, 3, 4, 5, 6, 7]

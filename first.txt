@@ -1,0 +1,84 @@
+# 1. IMPORT LIBRARIES
+import numpy as np
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
+import matplotlib.pyplot as plt
+
+# 2. CRISP SET
+print("\n==================================")
+print("CRISP SET")
+print("==================================")
+
+temperature_value = 30
+# In crisp logic, temperature is either HOT or NOT HOT
+if temperature_value >= 25:
+    print("Temperature:", temperature_value)
+    print("Crisp result: HOT")
+else:
+    print("Temperature:", temperature_value)
+    print("Crisp result: NOT HOT")
+
+# 3. DEFINE FUZZY INPUT AND OUTPUT VARIABLES
+# Antecedent (INPUT variable)
+temperature = ctrl.Antecedent(np.arange(0, 41, 1), 'temperature')
+
+# Consequent (OUTPUT variable)
+temperature_level = ctrl.Consequent(np.arange(0, 101, 1), 'temperature_level')
+
+# 4. DEFINE MEMBERSHIP FUNCTIONS
+# Fuzzy sets for temperature
+temperature['cold'] = fuzz.trimf(temperature.universe, [0, 0, 20])
+temperature['warm'] = fuzz.trimf(temperature.universe, [15, 25, 35])
+temperature['hot'] = fuzz.trimf(temperature.universe, [30, 40, 40])
+
+# Fuzzy sets for output
+temperature_level['low'] = fuzz.trimf(temperature_level.universe, [0, 0, 50])
+temperature_level['medium'] = fuzz.trimf(temperature_level.universe, [25, 50, 75])
+temperature_level['high'] = fuzz.trimf(temperature_level.universe, [50, 100, 100])
+
+# 5. DISPLAY MEMBERSHIP FUNCTIONS
+print("\n==================================")
+print("MEMBERSHIP FUNCTIONS")
+print("==================================")
+print("Temperature fuzzy sets:")
+print("1. Cold")
+print("2. Warm")
+print("3. Hot")
+print("\nTemperature universe:")
+print(temperature.universe)
+
+# 6. FUZZIFICATION
+print("\n==================================")
+print("FUZZIFICATION")
+print("==================================")
+
+temperature_input = 30
+print("Crisp input temperature:", temperature_input, "°C")
+
+# Find membership values using skfuzzy
+cold_value = fuzz.interp_membership(temperature.universe, temperature['cold'].mf, temperature_input)
+warm_value = fuzz.interp_membership(temperature.universe, temperature['warm'].mf, temperature_input)
+hot_value = fuzz.interp_membership(temperature.universe, temperature['hot'].mf, temperature_input)
+
+# 7. DISPLAY FUZZIFICATION RESULT
+print("\nMembership values:")
+print("Cold:", round(cold_value, 2))
+print("Warm:", round(warm_value, 2))
+print("Hot:", round(hot_value, 2))
+
+# 8. INTERPRETATION
+print("\n==================================")
+print("INTERPRETATION")
+print("==================================")
+print("Temperature:", temperature_input, "°C")
+if cold_value > 0:
+    print("Cold membership:", round(cold_value, 2))
+if warm_value > 0:
+    print("Warm membership:", round(warm_value, 2))
+if hot_value > 0:
+    print("Hot membership:", round(hot_value, 2))
+
+# 9. PLOT MEMBERSHIP FUNCTIONS
+temperature.view()
+temperature_level.view()
+plt.show()

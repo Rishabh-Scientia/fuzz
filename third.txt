@@ -1,0 +1,90 @@
+# 1. IMPORT LIBRARIES
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 2. DEFINE FUZZY RELATION MATRICES
+# Relation R (2 x 3)
+R = np.array([
+    [0.2, 0.7, 0.5],
+    [0.9, 0.4, 0.6]
+])
+
+# Relation S (3 x 2)
+S = np.array([
+    [0.8, 0.3],
+    [0.5, 0.9],
+    [0.6, 0.4]
+])
+
+# 3. DISPLAY FUZZY RELATIONS
+print("==================================")
+print("FUZZY RELATIONS")
+print("==================================")
+print("Fuzzy Relation R:")
+print(R)
+print("\nFuzzy Relation S:")
+print(S)
+
+# 4. MAX-MIN COMPOSITION
+print("\n==================================")
+print("MAX-MIN COMPOSITION")
+print("==================================")
+max_min = np.zeros((R.shape[0], S.shape[1]))
+
+for i in range(R.shape[0]):
+    for k in range(S.shape[1]):
+        values = []
+        for j in range(R.shape[1]):
+            values.append(min(R[i, j], S[j, k]))
+        max_min[i, k] = max(values)
+
+print("Max-Min Composition Result:")
+print(max_min)
+
+# 5. MAX-PRODUCT COMPOSITION
+print("\n==================================")
+print("MAX-PRODUCT COMPOSITION")
+print("==================================")
+max_product = np.zeros((R.shape[0], S.shape[1]))
+
+for i in range(R.shape[0]):
+    for k in range(S.shape[1]):
+        values = []
+        for j in range(R.shape[1]):
+            values.append(R[i, j] * S[j, k])
+        max_product[i, k] = max(values)
+
+print("Max-Product Composition Result:")
+print(np.round(max_product, 2))
+
+# 6. PLOT FUZZY RELATION MATRICES
+plt.figure(figsize=(10, 4))
+plt.subplot(1, 2, 1)
+plt.imshow(R, cmap='viridis', vmin=0, vmax=1)
+plt.colorbar()
+plt.title("Fuzzy Relation R")
+plt.xlabel("Set Y")
+plt.ylabel("Set X")
+
+plt.subplot(1, 2, 2)
+plt.imshow(S, cmap='viridis', vmin=0, vmax=1)
+plt.colorbar()
+plt.title("Fuzzy Relation S")
+plt.xlabel("Set Z")
+plt.ylabel("Set Y")
+plt.tight_layout()
+plt.show()
+
+# 7. PLOT COMPOSITION RESULTS
+plt.figure(figsize=(10, 4))
+plt.subplot(1, 2, 1)
+plt.imshow(max_min, cmap='viridis', vmin=0, vmax=1)
+plt.colorbar()
+plt.title("Max-Min Composition")
+
+plt.subplot(1, 2, 2)
+plt.imshow(max_product, cmap='viridis', vmin=0, vmax=1)
+plt.colorbar()
+plt.title("Max-Product Composition")
+plt.tight_layout()
+plt.show()

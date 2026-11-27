@@ -1,0 +1,93 @@
+# 1. IMPORT LIBRARIES
+import numpy as np
+import skfuzzy as fuzz
+import matplotlib.pyplot as plt
+
+# 2. DEFINE UNIVERSE OF DISCOURSE
+x = np.arange(0, 11, 1)
+
+# 3. DEFINE FUZZY SETS
+A = fuzz.trimf(x, [0, 5, 10])
+B = fuzz.trimf(x, [2, 6, 10])
+C = fuzz.trimf(x, [0, 4, 8])
+
+print("==================================")
+print("FUZZY SETS")
+print("==================================")
+print("Universe:", x)
+print("Fuzzy Set A:", np.round(A, 2))
+print("Fuzzy Set B:", np.round(B, 2))
+print("Fuzzy Set C:", np.round(C, 2))
+
+# 4. BASIC OPERATIONS ON FUZZY SETS
+print("\n==================================")
+print("BASIC FUZZY OPERATIONS")
+print("==================================")
+
+# Union operation (OR)
+union_AB = np.maximum(A, B)
+
+# Intersection operation (AND)
+intersection_AB = np.minimum(A, B)
+
+# Complement operation (NOT)
+complement_A = 1 - A
+
+print("Union (A OR B):", np.round(union_AB, 2))
+print("Intersection (A AND B):", np.round(intersection_AB, 2))
+print("Complement of A:", np.round(complement_A, 2))
+
+# 5. VERIFY COMMUTATIVE PROPERTY
+print("\n==================================")
+print("COMMUTATIVE PROPERTY")
+print("==================================")
+union_BA = np.maximum(B, A)
+intersection_BA = np.minimum(B, A)
+
+print("A union B == B union A:", np.allclose(union_AB, union_BA))
+print("A intersection B == B intersection A:", np.allclose(intersection_AB, intersection_BA))
+
+# 6. VERIFY ASSOCIATIVE PROPERTY
+print("\n==================================")
+print("ASSOCIATIVE PROPERTY")
+print("==================================")
+left_union = np.maximum(np.maximum(A, B), C)
+right_union = np.maximum(A, np.maximum(B, C))
+
+left_intersection = np.minimum(np.minimum(A, B), C)
+right_intersection = np.minimum(A, np.minimum(B, C))
+
+print("Union associative:", np.allclose(left_union, right_union))
+print("Intersection associative:", np.allclose(left_intersection, right_intersection))
+
+# 7. VERIFY DISTRIBUTIVE PROPERTY
+print("\n==================================")
+print("DISTRIBUTIVE PROPERTY")
+print("==================================")
+left = np.minimum(A, np.maximum(B, C))
+right = np.maximum(np.minimum(A, B), np.minimum(A, C))
+
+print("A intersection (B union C):", np.allclose(left, right))
+
+# 8. VERIFY DE MORGAN'S LAW
+print("\n==================================")
+print("DE MORGAN'S LAW")
+print("==================================")
+left_demorgan = 1 - np.maximum(A, B)
+right_demorgan = np.minimum(1 - A, 1 - B)
+
+print("Complement of (A union B):", np.allclose(left_demorgan, right_demorgan))
+
+# 9. PLOT FUZZY SETS AND OPERATIONS
+plt.figure(figsize=(10, 6))
+plt.plot(x, A, 'r-o', label="Fuzzy Set A")
+plt.plot(x, B, 'b-o', label="Fuzzy Set B")
+plt.plot(x, union_AB, 'g--', label="Union A OR B")
+plt.plot(x, intersection_AB, 'm--', label="Intersection A AND B")
+plt.plot(x, complement_A, 'k:', label="Complement of A")
+plt.xlabel("Universe of Discourse")
+plt.ylabel("Membership Degree")
+plt.title("Basic Operations on Fuzzy Sets")
+plt.legend()
+plt.grid()
+plt.show()

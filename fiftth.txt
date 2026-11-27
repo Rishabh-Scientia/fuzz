@@ -1,0 +1,104 @@
+# 1. IMPORT LIBRARIES
+import numpy as np
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
+import matplotlib.pyplot as plt
+
+# 2. DEFINE INPUT AND OUTPUT VARIABLES
+temperature = ctrl.Antecedent(np.arange(0, 51, 1), 'temperature')
+fan_speed = ctrl.Consequent(np.arange(0, 101, 1), 'fan_speed')
+
+# 3. DEFINE MEMBERSHIP FUNCTIONS
+# Temperature membership functions
+temperature['cold'] = fuzz.trimf(temperature.universe, [0, 0, 20])
+temperature['warm'] = fuzz.trimf(temperature.universe, [15, 25, 35])
+temperature['hot'] = fuzz.trimf(temperature.universe, [30, 40, 50])
+
+# Fan speed membership functions
+fan_speed['low'] = fuzz.trimf(fan_speed.universe, [0, 0, 50])
+fan_speed['medium'] = fuzz.trimf(fan_speed.universe, [25, 50, 75])
+fan_speed['high'] = fuzz.trimf(fan_speed.universe, [50, 100, 100])
+
+# 4. DEFINE FUZZY RULES
+rule1 = ctrl.Rule(temperature['cold'], fan_speed['low'])
+rule2 = ctrl.Rule(temperature['warm'], fan_speed['medium'])
+rule3 = ctrl.Rule(temperature['hot'], fan_speed['high'])
+
+# 5. CREATE FUZZY INFERENCE SYSTEM
+fan_control = ctrl.ControlSystem([rule1, rule2, rule3])
+fan_simulation = ctrl.ControlSystemSimulation(fan_control)
+
+# 6. PERFORM FUZZIFICATION
+temperature_input = 32
+fan_simulation.input['temperature'] = temperature_input
+fan_simulation.compute()
+
+print("==================================")
+print("FUZZY INFERENCE SYSTEM")
+print("==================================")
+print("Input Temperature:", temperature_input, "°C")
+
+# 7. CALCULATE MEMBERSHIP VALUES
+cold = fuzz.interp_membership(temperature.universe, temperature['cold'].mf, temperature_input)
+warm = fuzz.interp_membership(temperature.universe, temperature['warm'].mf, temperature_input)
+hot = fuzz.interp_membership(temperature.universe, temperature['hot'].mf, temperature_input)
+
+print("\nMembership Values:")
+print("Cold:", round(cold, 2))
+print("Warm:", round(warm, 2))
+print("Hot:", round(hot, 2))
+
+# 8. AGGREGATE FUZZY OUTPUTS
+z = fan_speed.universe
+low = fan_speed['low'].mf
+medium = fan_speed['medium'].mf
+high = fan_speed['high'].mf
+
+# Apply fuzzy rules
+rule1_output = np.fmin(cold, low)
+rule2_output = np.fmin(warm, medium)
+rule3_output = np.fmin(hot, high)
+
+# Combine all rule outputs
+aggregated = np.fmax(rule1_output, np.fmax(rule2_output, rule3_output))
+
+# 9. APPLY FIVE DEFUZZIFICATION METHODS
+centroid = fuzz.defuzz(z, aggregated, 'centroid')
+bisector = fuzz.defuzz(z, aggregated, 'bisector')
+mom = fuzz.defuzz(z, aggregated, 'mom')
+som = fuzz.defuzz(z, aggregated, 'som')
+lom = fuzz.defuzz(z, aggregated, 'lom')
+
+# 10. DISPLAY DEFUZZIFICATION RESULTS
+print("\n==================================")
+print("DEFUZZIFICATION RESULTS")
+print("==================================")
+print("Centroid Method:", round(centroid, 2))
+print("Bisector Method:", round(bisector, 2))
+print("Mean of Maximum (MOM):", round(mom, 2))
+print("Smallest of Maximum (SOM):", round(som, 2))
+print("Largest of Maximum (LOM):", round(lom, 2))
+
+# 11. DISPLAY FUZZY SYSTEM OUTPUT
+print("\n==================================")
+print("FUZZY SYSTEM OUTPUT")
+print("==================================")
+print("Fan Speed:", round(fan_simulation.output['fan_speed'], 2), "%")
+
+# 12. PLOT INPUT MEMBERSHIP FUNCTIONS
+temperature.view()
+plt.title("Temperature Membership Functions")
+
+# 13. PLOT OUTPUT MEMBERSHIP FUNCTIONS
+fan_speed.view()
+plt.title("Fan Speed Membership Functions")
+
+# 14. PLOT AGGREGATED OUTPUT
+plt.figure(figsize=(9, 5))
+plt.plot(z, aggregated, 'b', label="Aggregated Output")
+plt.xlabel("Fan Speed (%)")
+plt.ylabel("Membership Degree")
+plt.title("Aggregated Fuzzy Output")
+plt.legend()
+plt.grid()
+plt.show()
